@@ -1,0 +1,3 @@
+name: SrWildEntity
+version: '${project.version}'
+main: com.yuyu.srwildentity.SrWildEntity
