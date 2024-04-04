@@ -4,6 +4,7 @@ package com.yuyu.srwildentity.config.condition;
  * 实体刷新的位置
  */
 public enum EntitySite {
+    NULL(0),//无
     ON_GROUND(1), //在地上
 
     ON_WATER(2),  //在水上

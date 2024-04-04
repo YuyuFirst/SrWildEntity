@@ -1,5 +1,6 @@
 package com.yuyu.srwildentity.config.condition;
 
+import net.md_5.bungee.api.ChatColor;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
@@ -18,18 +19,18 @@ import java.util.List;
  * @Description: 读取实体刷新的配置相关文件
  */
 public class BiomeEntityRefreshSettings {
-    private final HashMap<String,List<String>> biomeEntityMap;
+    private final HashMap<String,List<String>> biomeEntityMap;//此集合储存了群系内需要刷新的怪物
 
-    private final HashMap<String,HashMap<String,EntityCondition>> biomeEntityConditionMap;
+    private final HashMap<String,HashMap<String,EntityCondition>> biomeEntityConditionMap;//此集合储存需要刷新的怪物的相关配置
 
 
     public BiomeEntityRefreshSettings(Plugin plugin) {
         this.biomeEntityMap = new HashMap<>();
         this.biomeEntityConditionMap = new HashMap<>();
 
-        loadBiomeEntitiesConfig(plugin);
+        this.loadBiomeEntitiesConfig(plugin);
 
-        loadEntityConditionConfig(plugin);
+        this.loadEntityConditionConfig(plugin);
 
     }
 
@@ -41,17 +42,21 @@ public class BiomeEntityRefreshSettings {
         File file = new File(plugin.getDataFolder(), "entityCondition.yml");
         config = YamlConfiguration.loadConfiguration(file);
         for (String biomeName : this.biomeEntityMap.keySet()){
+            plugin.getLogger().info(ChatColor.GOLD+biomeName);
             HashMap<String,EntityCondition> entityConditionHashMap = new HashMap<>();
 
             List<String> entities = this.biomeEntityMap.get(biomeName);
             for (String entityName : entities){
                 EntitySite entitySite = EntitySite.fromId(config.getInt(biomeName + "." + entityName + ".site"));
                 int light = config.getInt(biomeName+"."+entityName+".light");
-                long time = config.getLong(biomeName+"."+entityName+".timing");
+                long stime = config.getLong(biomeName+"."+entityName+".startTiming");
+                long etime = config.getLong(biomeName+"."+entityName+".endTiming");
                 int nums = config.getInt(biomeName+"."+entityName+".nums");
                 int yMax = config.getInt(biomeName+"."+entityName+".yMax");
                 int yMin = config.getInt(biomeName+"."+entityName+".yMin");
-                EntityCondition entityCondition = new EntityCondition(entityName, biomeName, entitySite, light, time, nums, yMax, yMin);
+                EntityCondition entityCondition = new EntityCondition(entityName, biomeName, entitySite, light, stime,etime, nums, yMax, yMin);
+
+                plugin.getLogger().info(ChatColor.AQUA+entityCondition.toString());
 
                 //存入单个群系刷新map
                 entityConditionHashMap.put(entityName, entityCondition);
@@ -78,6 +83,8 @@ public class BiomeEntityRefreshSettings {
         biomeconfig = YamlConfiguration.loadConfiguration(biomeName);
         List<String> biomeList = biomeconfig.getStringList("biome");
 
+
+
         if (config == null || biomeconfig == null){
             plugin.getLogger().info("biomeEntity.yml或者 biome.yml文件读取失败!");
             return;
@@ -89,13 +96,19 @@ public class BiomeEntityRefreshSettings {
             if (config.contains(section)){
                 List<String> entityList = config.getStringList(section+".ENTITY");
                 this.biomeEntityMap.put(section,entityList);
+                plugin.getLogger().info(ChatColor.MAGIC+section+ entityList.toString());
             }
         }
 
         plugin.getLogger().info("biomeEntity.读取完成");
     }
 
-    public HashMap<String, List<String>> getEntityMap() {
+    public HashMap<String, List<String>> getBiomeEntityMap() {
         return biomeEntityMap;
     }
+
+    public HashMap<String, HashMap<String, EntityCondition>> getBiomeEntityConditionMap() {
+        return biomeEntityConditionMap;
+    }
+
 }

@@ -1,5 +1,9 @@
 package com.yuyu.srwildentity;
 
+import com.yuyu.srwildentity.config.ConfigManager;
+import com.yuyu.srwildentity.listener.EntityRefreshListener;
+import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.plugin.java.JavaPlugin;
 
 /**
@@ -13,12 +17,31 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 public final class SrWildEntity extends JavaPlugin {
 
+    private ConfigManager configManager;
+
+
     @Override
     public void onEnable() {
-        // Plugin startup logic
+        getLogger().info(ChatColor.AQUA+"SrWildEntity开始运行");
+        onload();
+
+
+        //TODO(注册监听类,测试)
+        EntityRefreshListener entityRefreshListener = new EntityRefreshListener(this.getLogger(),configManager,this);
+
+        Bukkit.getPluginManager().registerEvents(entityRefreshListener,this);
+
+        this.getCommand("despawn").setExecutor(entityRefreshListener);
 
     }
 
+    /**
+     *
+     */
+    public void onload(){
+        this.configManager = new ConfigManager(this);
+
+    }
     @Override
     public void onDisable() {
         // Plugin shutdown logic

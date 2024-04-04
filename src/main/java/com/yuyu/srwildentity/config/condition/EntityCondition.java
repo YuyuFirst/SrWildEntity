@@ -14,17 +14,19 @@ public class EntityCondition {
     private final String biome;//实体刷新的群系
     private final EntitySite entitySite;//刷新位置
     private final int light;//刷新亮度
-    private final long timing;//刷新时间
+    private final long startTiming;//刷新时间
+    private final long endTimeing;//结束刷新的时间
     private final int nums;//刷新的数量
     private final int yMax;
     private final int yMin;
 
-    public EntityCondition(String entityName, String biome, EntitySite entitySite, int light, long timing, int nums, int yMax, int yMin) {
+    public EntityCondition(String entityName, String biome, EntitySite entitySite, int light, long startTiming,long endTiming, int nums, int yMax, int yMin) {
         this.entityName = entityName;
         this.biome = biome;
         this.entitySite = entitySite;
         this.light = light;
-        this.timing = timing;
+        this.startTiming = startTiming;
+        this.endTimeing = endTiming;
         this.nums = nums;
         this.yMax = yMax;
         this.yMin = yMin;
@@ -46,8 +48,12 @@ public class EntityCondition {
         return light;
     }
 
-    public long getTiming() {
-        return timing;
+    public long getStartTiming() {
+        return startTiming;
+    }
+
+    public long getEndTimeing() {
+        return endTimeing;
     }
 
     public int getNums() {
@@ -60,5 +66,20 @@ public class EntityCondition {
 
     public int getyMin() {
         return yMin;
+    }
+
+    @Override
+    public String toString() {
+        return "EntityCondition{" +
+                "entityName='" + entityName + '\'' +
+                ", biome='" + biome + '\'' +
+                ", entitySite=" + entitySite +
+                ", light=" + light +
+                ", startTiming=" + startTiming +
+                ", endTimeing=" + endTimeing +
+                ", nums=" + nums +
+                ", yMax=" + yMax +
+                ", yMin=" + yMin +
+                '}';
     }
 }

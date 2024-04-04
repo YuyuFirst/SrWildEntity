@@ -20,6 +20,7 @@ public class ConfigManager {
     private final BiomeEntityRefreshSettings biomeEntityRefreshSettings;//读取了群系相关刷新条件和需要刷新方块
     private final int refreshTime;
     private final int total;
+    private final int num;
 
     public ConfigManager(Plugin plugin) {
         //加载配置文件
@@ -32,6 +33,7 @@ public class ConfigManager {
 
         this.refreshTime = config.getInt("RefreshTime");
         this.total = config.getInt("total");
+        this.num = config.getInt("num");
     }
 
     public BiomeEntityRefreshSettings getBiomeEntityRefreshSettings() {
@@ -40,6 +42,10 @@ public class ConfigManager {
 
     public int getRefreshTime() {
         return refreshTime;
+    }
+
+    public int getNum() {
+        return num;
     }
 
     public int getTotal() {
