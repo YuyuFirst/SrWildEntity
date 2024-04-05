@@ -301,6 +301,7 @@ public class EntityRefreshListener implements Listener, CommandExecutor {
                 World world = playerlocation.getWorld();
                 int blockZ = playerlocation.getBlockZ();
                 int blockX = playerlocation.getBlockX();
+                int blockY = playerlocation.getBlockY();
                 Biome biome = world.getBiome(blockX, blockZ);
                 String biomeName = biome.name();
 
@@ -319,6 +320,14 @@ public class EntityRefreshListener implements Listener, CommandExecutor {
                     //获取entity配置
                     EntityCondition entityCondition = entityConditionHashMap.get(entityName);
 
+                    int yMin = entityCondition.getyMin();
+                    int yMax = entityCondition.getyMax();
+
+                    //如果玩家所在位置不再设置的y轴高度内，则不刷新此entity
+                    if (yMin > blockY || yMax < blockY){
+                        continue;
+                    }
+
                     int nums = entityCondition.getNums();//当前实体需要刷新的数量
 
                     for (int i = 0;i<nums &&
@@ -326,8 +335,8 @@ public class EntityRefreshListener implements Listener, CommandExecutor {
                             && sum <= num; i++) {
 
                         // 生成x和y坐标,会随机在玩家方圆15个方块的距离内随机生成
-                        int x = random.nextInt(30) - 15; // 生成0到60之间的随机数，然后减去30，得到-30到30的范围
-                        int z = random.nextInt(30) - 15; // 同上,在玩家附近随机位置生成
+                        int x =blockX + random.nextInt(30) - 15; // 生成0到60之间的随机数，然后减去30，得到-30到30的范围
+                        int z =blockZ + random.nextInt(30) - 15; // 同上,在玩家附近随机位置生成
                         int y;
                         //刷新在地上，直接获取最高的x z 最高处的坐标
                         if (entityCondition.getEntitySite() == EntitySite.ON_GROUND) {
@@ -358,9 +367,9 @@ public class EntityRefreshListener implements Listener, CommandExecutor {
                                     playerRefreshinfo.getEntityList().size() < configManager.getTotal();
                                  c++) {
                                 //循环十次验证刷新位置
-                                y = random.nextInt(range) - 1 ;
-                                x = random.nextInt(30) - 15; // 生成0到60之间的随机数，然后减去30，得到-30到30的范围
-                                z = random.nextInt(30) - 15; // 同上,在玩家附近随机位置生成
+                                y = blockY + random.nextInt(6) - 6;//在玩家所在高度的上下六格内生成，便于当玩家在洞穴时，定位洞穴
+                                x = blockX + random.nextInt(30) - 15; // 生成0到60之间的随机数，然后减去30，得到-30到30的范围
+                                z = blockZ + random.nextInt(30) - 15; // 同上,在玩家附近随机位置生成
 
                                 Location location = new Location(world, x, y + 1, z);
 
