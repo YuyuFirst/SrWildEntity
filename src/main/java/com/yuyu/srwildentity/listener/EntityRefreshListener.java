@@ -10,6 +10,7 @@ import com.yuyu.srwildentity.config.ConfigManager;
 import com.yuyu.srwildentity.config.condition.EntityCondition;
 import com.yuyu.srwildentity.config.condition.EntitySite;
 import com.yuyu.srwildentity.pojo.PlayerRefreshinfo;
+import jdk.management.resource.internal.inst.FileOutputStreamRMHooks;
 import me.clip.placeholderapi.PlaceholderAPI;
 import org.bukkit.*;
 import org.bukkit.block.Biome;
@@ -25,6 +26,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.world.ChunkUnloadEvent;
 import org.bukkit.plugin.Plugin;
 
 import java.util.*;
@@ -100,7 +102,28 @@ public class EntityRefreshListener implements Listener, CommandExecutor {
             if (strings.length == 0){
                 //只输入despawn,直接停止刷新
                 flag = !flag;
-                return true;
+                if (flag){
+                    //flag为true，开始重新刷新实体，此时遍历所有玩家，获取此时在野外的玩家
+                    Collection<? extends Player> onlinePlayers = plugin.getServer().getOnlinePlayers();
+                    for (Player player : onlinePlayers){
+                        String name = player.getName();
+                        Town town = TownyAPI.getInstance().getTown(player.getLocation());
+                        if (town == null){
+                            PlayerRefreshinfo playerRefreshinfo = new PlayerRefreshinfo(name, 0, new ArrayList<>());
+                            refreshPlayer.put(name, playerRefreshinfo);
+                        }
+                        logger.info(ChatColor.GREEN+"所有在野外的玩家开始刷新实体");
+                        commandSender.sendMessage(ChatColor.GREEN+"所有在野外的玩家开始刷新实体");
+                        return true;
+                    }
+                }else {
+                    //flag=false，清空所有集合，停止刷新实体
+                    entityUUIDToPlayer.clear();
+                    refreshPlayer.clear();
+                    logger.info(ChatColor.AQUA+"所有玩家停止刷新实体");
+                    commandSender.sendMessage(ChatColor.AQUA+"所有玩家停止刷新实体");
+                    return true;
+                }
             }else {
                 String choice = strings[0];//只能是on，或者off
                 if (choice.equalsIgnoreCase("on") || choice.equalsIgnoreCase("off")){
@@ -125,6 +148,7 @@ public class EntityRefreshListener implements Listener, CommandExecutor {
                             //玩家不为空
                             refreshPlayer.remove(strings[1]);
                             noRefreshPlayer.add(strings[1]);
+                            commandSender.sendMessage(ChatColor.YELLOW+strings[1]+"停止刷怪");
                             return true;
                         }
                     }
@@ -146,6 +170,11 @@ public class EntityRefreshListener implements Listener, CommandExecutor {
     public void onPlayerInTown(PlayerEnterTownEvent event) {
         if (flag){
             String name = event.getPlayer().getName();
+            List<UUID> entityList = refreshPlayer.get(name).getEntityList();
+            for (UUID uuid : entityList){
+                //删除储存的实体信息
+                entityUUIDToPlayer.remove(uuid);
+            }
             refreshPlayer.remove(name);
             logger.info(name + "开始停止怪物");
         }
@@ -196,6 +225,11 @@ public class EntityRefreshListener implements Listener, CommandExecutor {
             String name = player.getName();
             //下线后移出刷新列表
             if (refreshPlayer.get(name) != null) {
+                List<UUID> entityList = refreshPlayer.get(name).getEntityList();
+                for (UUID uuid : entityList){
+                    //删除储存的实体信息
+                   entityUUIDToPlayer.remove(uuid);
+                }
                 refreshPlayer.remove(name);
                 logger.info(ChatColor.GOLD + "玩家被移出刷新集合");
             }
@@ -213,8 +247,31 @@ public class EntityRefreshListener implements Listener, CommandExecutor {
             UUID uniqueId = entity.getUniqueId();
             if (entityUUIDToPlayer.containsKey(uniqueId)) {
                 //通过死亡实体的uuid获取玩家姓名然后删除uuid
-                String playerName = entityUUIDToPlayer.get(entityUUIDToPlayer);
+                String playerName = entityUUIDToPlayer.get(uniqueId);
                 refreshPlayer.get(playerName).delEntityList(uniqueId);
+                entityUUIDToPlayer.remove(uniqueId);
+            }
+        }
+    }
+
+    /**
+     * 区块被卸载时，删除区块上的刷新的实体
+     * @param event
+     */
+    @EventHandler
+    public void despawnEntity(ChunkUnloadEvent event){
+        Chunk chunk = event.getChunk();
+        Entity[] entities = chunk.getEntities();
+        for (Entity entity : entities){
+            UUID uniqueId = entity.getUniqueId();
+            if (entityUUIDToPlayer.containsKey(uniqueId)){
+                //通过，则表示该实体记录在map集合中,需要删除
+                entity.remove();
+
+                //通过uuid获取对应的玩家姓名,然后通过玩家姓名获取对应的list集合
+                String name = entityUUIDToPlayer.get(uniqueId);
+
+                refreshPlayer.get(name).delEntityList(uniqueId);
             }
         }
     }
@@ -254,7 +311,8 @@ public class EntityRefreshListener implements Listener, CommandExecutor {
                         configManager.getBiomeEntityRefreshSettings().getBiomeEntityConditionMap().get(biomeName);
 
                 if (entityList == null || entityConditionHashMap == null){
-                    throw new RuntimeException("entityList和entityConditionHashMap读取出错");
+                    logger.info(ChatColor.RED+"没有配置"+biomeName+"群系的实体刷新案例");
+                    continue;
                 }
 
                 for (String entityName : entityList){
@@ -267,36 +325,82 @@ public class EntityRefreshListener implements Listener, CommandExecutor {
                             playerRefreshinfo.getEntityList().size() < configManager.getTotal()
                             && sum <= num; i++) {
 
-                        // 生成x和y坐标，范围在-30到30之间（包括-30和30）
-                        int x = random.nextInt(61) - 30; // 生成0到60之间的随机数，然后减去30，得到-30到30的范围
-                        int z = random.nextInt(61) - 30; // 同上,在玩家附近随机位置生成
+                        // 生成x和y坐标,会随机在玩家方圆15个方块的距离内随机生成
+                        int x = random.nextInt(30) - 15; // 生成0到60之间的随机数，然后减去30，得到-30到30的范围
+                        int z = random.nextInt(30) - 15; // 同上,在玩家附近随机位置生成
                         int y;
                         //刷新在地上，直接获取最高的x z 最高处的坐标
                         if (entityCondition.getEntitySite() == EntitySite.ON_GROUND) {
                             y = world.getHighestBlockYAt(x, z);
+
+                            Location location = new Location(world, x, y + 1, z);
+
+                            //判断位置是否符合
+                            if (ConditionCheck.checkEntityRefresh(world, location, entityCondition)) {
+                                //通过则生成
+                                Entity entity = world.spawnEntity(location, EntityType.valueOf(entityCondition.getEntityName()));
+                                logger.info(ChatColor.GOLD + "在" + x + " " + y + " " + z + "位置刷新了" + entityName);
+                                UUID uniqueId = entity.getUniqueId();
+
+                                //存入玩家对应的刷新的实体集合，便于寻找
+                                entityUUIDToPlayer.put(uniqueId, name);
+
+                                //存入
+                                playerRefreshinfo.addEntityList(uniqueId);
+
+                                sum++;
+
+                            }
                         } else {
+                            //不刷新在地上，在定义的范围内随机高度，概率生成实体，
                             int range = entityCondition.getyMax() - entityCondition.getyMin() + 1;
-                            y = random.nextInt(range) - 1;//随机高度
+                            for (int c = 0; i<nums && c < 10 && sum <= num &&
+                                    playerRefreshinfo.getEntityList().size() < configManager.getTotal();
+                                 c++) {
+                                //循环十次验证刷新位置
+                                y = random.nextInt(range) - 1 ;
+                                x = random.nextInt(30) - 15; // 生成0到60之间的随机数，然后减去30，得到-30到30的范围
+                                z = random.nextInt(30) - 15; // 同上,在玩家附近随机位置生成
+
+                                Location location = new Location(world, x, y + 1, z);
+
+                                //判断位置是否符合
+                                if (ConditionCheck.checkEntityRefresh(world, location, entityCondition)) {
+                                    //通过则生成
+                                    Entity entity = world.spawnEntity(location, EntityType.valueOf(entityCondition.getEntityName()));
+                                    logger.info(ChatColor.GOLD + "在" + x + " " + y + " " + z + "位置刷新了" + entityName);
+                                    UUID uniqueId = entity.getUniqueId();
+
+                                    //存入玩家对应的刷新的实体集合，便于寻找
+                                    entityUUIDToPlayer.put(uniqueId, name);
+
+                                    //存入
+                                    playerRefreshinfo.addEntityList(uniqueId);
+                                    i++;
+                                    sum++;
+
+                                }
+                            }
                         }
 
-                        Location location = new Location(world, x, y + 1, z);
-
-                        //判断位置是否符合
-                        if (ConditionCheck.checkEntityRefresh(world, location, entityCondition)) {
-                            //通过则生成
-                            Entity entity = world.spawnEntity(location, EntityType.valueOf(entityCondition.getEntityName()));
-                            logger.info(ChatColor.GOLD+"在"+x+" "+y+" "+z+"位置刷新了"+entityName);
-                            UUID uniqueId = entity.getUniqueId();
-
-                            //存入玩家对应的刷新的实体集合，便于寻找
-                            entityUUIDToPlayer.put(uniqueId,name);
-
-                            //存入
-                            playerRefreshinfo.addEntityList(uniqueId);
-
-                            sum++;
-
-                        }
+//                        Location location = new Location(world, x, y + 1, z);
+//
+//                        //判断位置是否符合
+//                        if (ConditionCheck.checkEntityRefresh(world, location, entityCondition)) {
+//                            //通过则生成
+//                            Entity entity = world.spawnEntity(location, EntityType.valueOf(entityCondition.getEntityName()));
+//                            logger.info(ChatColor.GOLD+"在"+x+" "+y+" "+z+"位置刷新了"+entityName);
+//                            UUID uniqueId = entity.getUniqueId();
+//
+//                            //存入玩家对应的刷新的实体集合，便于寻找
+//                            entityUUIDToPlayer.put(uniqueId,name);
+//
+//                            //存入
+//                            playerRefreshinfo.addEntityList(uniqueId);
+//
+//                            sum++;
+//
+//                        }
                     }
                 }
             }
