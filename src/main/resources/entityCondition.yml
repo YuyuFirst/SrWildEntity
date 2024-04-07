@@ -1,5 +1,6 @@
 DESERT:
   ZOMBIE: #指出entity在该群系的刷新条件
+    type: 0 #0表示生成mc原生实体，1表示生成MM怪物,不能为空！
     site: 1 #刷新位置,数字代表不同的刷新位置
     light: 15 #刷新亮度
     startTiming: 0    #刷新怪物的时间，注意这里需要用mc中的时间格式来表示，而不是现实中的时间
@@ -9,6 +10,7 @@ DESERT:
     yMin: 60 #最小刷新高度
 ROOFED_FOREST:
   ZOMBIE: #指出entity在该群系的刷新条件
+    type: 0 #0表示生成mc原生实体，1表示生成MM怪物，2表示生成萌芽怪物
     site: 1 #刷新位置,数字代表不同的刷新位置
     light: 15 #刷新亮度
     startTiming: 0    #刷新怪物的时间，注意这里需要用mc中的时间格式来表示，而不是现实中的时间
@@ -18,6 +20,7 @@ ROOFED_FOREST:
     yMin: 60 #最小刷新高度
 
   PIG_ZOMBIE: #指出entity在该群系的刷新条件
+    type: 0 #0表示生成mc原生实体，1表示生成MM怪物，2表示生成萌芽怪物
     site: 1 #刷新位置,数字代表不同的刷新位置
     light: 15 #刷新亮度
     startTiming: 0    #刷新怪物的时间，注意这里需要用mc中的时间格式来表示，而不是现实中的时间

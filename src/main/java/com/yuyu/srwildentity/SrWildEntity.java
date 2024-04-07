@@ -4,6 +4,9 @@ import com.yuyu.srwildentity.config.ConfigManager;
 import com.yuyu.srwildentity.listener.EntityRefreshListener;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandExecutor;
+import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.java.JavaPlugin;
 
 /**
@@ -15,9 +18,9 @@ import org.bukkit.plugin.java.JavaPlugin;
  * 6.玩家周边生成的最大数量, 是否达到上限 (papi, 跟危险度相关，需要导入危险度插件,配置文件中定义最大生成等)
  */
 
-public final class SrWildEntity extends JavaPlugin {
+public final class SrWildEntity extends JavaPlugin implements CommandExecutor {
 
-    private ConfigManager configManager;
+    private EntityRefreshListener entityRefreshListener;
 
 
     @Override
@@ -27,23 +30,56 @@ public final class SrWildEntity extends JavaPlugin {
 
 
         //TODO(注册监听类,测试)
-        EntityRefreshListener entityRefreshListener = new EntityRefreshListener(this.getLogger(),configManager,this);
+         this.entityRefreshListener = new EntityRefreshListener(this.getLogger(),onload(),this);
 
         Bukkit.getPluginManager().registerEvents(entityRefreshListener,this);
 
         this.getCommand("despawn").setExecutor(entityRefreshListener);
+        this.getCommand("SrWildEntity").setExecutor(this::onCommand);
 
     }
 
     /**
      *
      */
-    public void onload(){
-        this.configManager = new ConfigManager(this);
+    public ConfigManager onload(){
+       return new ConfigManager(this);
 
     }
+
+
     @Override
     public void onDisable() {
-        // Plugin shutdown logic
     }
+
+    /**
+     * 重载插件
+     * @param commandSender
+     * @param command
+     * @param s
+     * @param strings
+     * @return
+     */
+    public boolean onCommand(CommandSender commandSender, Command command, String s, String[] strings){
+        if (!commandSender.isOp()){
+            getLogger().info(ChatColor.RED+"只有OP能执行此指令!");
+        }
+        if (!s.equalsIgnoreCase("srwildentity")){
+            //前缀不通过
+            return false;
+        } else {
+            if (strings.length == 0){
+                commandSender.sendMessage(ChatColor.RED+"请加上reload操作");
+            }else {
+                if (strings[0].equalsIgnoreCase("reload")){
+                    getLogger().info(ChatColor.AQUA+"SrWildEntity重新读取配置文件");
+                    commandSender.sendMessage(ChatColor.YELLOW+"SrWildEntity重新读取配置文件");
+                    entityRefreshListener.setConfigManager(this.onload());
+
+                }
+            }
+        }
+        return false;
+    }
+
 }

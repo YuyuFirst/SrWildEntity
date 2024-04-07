@@ -12,6 +12,7 @@ package com.yuyu.srwildentity.config.condition;
 public class EntityCondition {
     private final String entityName;//实体的名字
     private final String biome;//实体刷新的群系
+    private final SpawnEntityType spawnEntityType;//实体的来源
     private final EntitySite entitySite;//刷新位置
     private final int light;//刷新亮度
     private final long startTiming;//刷新时间
@@ -20,9 +21,10 @@ public class EntityCondition {
     private final int yMax;
     private final int yMin;
 
-    public EntityCondition(String entityName, String biome, EntitySite entitySite, int light, long startTiming,long endTiming, int nums, int yMax, int yMin) {
+    public EntityCondition(String entityName, String biome, SpawnEntityType spawnEntityType, EntitySite entitySite, int light, long startTiming, long endTiming, int nums, int yMax, int yMin) {
         this.entityName = entityName;
         this.biome = biome;
+        this.spawnEntityType = spawnEntityType;
         this.entitySite = entitySite;
         this.light = light;
         this.startTiming = startTiming;
@@ -30,6 +32,10 @@ public class EntityCondition {
         this.nums = nums;
         this.yMax = yMax;
         this.yMin = yMin;
+    }
+
+    public SpawnEntityType getEntityType() {
+        return spawnEntityType;
     }
 
     public String getEntityName() {
@@ -73,6 +79,7 @@ public class EntityCondition {
         return "EntityCondition{" +
                 "entityName='" + entityName + '\'' +
                 ", biome='" + biome + '\'' +
+                ", spawnEntityType=" + spawnEntityType +
                 ", entitySite=" + entitySite +
                 ", light=" + light +
                 ", startTiming=" + startTiming +

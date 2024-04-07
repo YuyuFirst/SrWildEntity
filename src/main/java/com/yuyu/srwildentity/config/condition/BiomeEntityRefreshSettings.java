@@ -47,6 +47,7 @@ public class BiomeEntityRefreshSettings {
 
             List<String> entities = this.biomeEntityMap.get(biomeName);
             for (String entityName : entities){
+                SpawnEntityType spawnEntityType = SpawnEntityType.fromId(config.getInt(biomeName + "." + entityName + ".type"));
                 EntitySite entitySite = EntitySite.fromId(config.getInt(biomeName + "." + entityName + ".site"));
                 int light = config.getInt(biomeName+"."+entityName+".light");
                 long stime = config.getLong(biomeName+"."+entityName+".startTiming");
@@ -54,7 +55,7 @@ public class BiomeEntityRefreshSettings {
                 int nums = config.getInt(biomeName+"."+entityName+".nums");
                 int yMax = config.getInt(biomeName+"."+entityName+".yMax");
                 int yMin = config.getInt(biomeName+"."+entityName+".yMin");
-                EntityCondition entityCondition = new EntityCondition(entityName, biomeName, entitySite, light, stime,etime, nums, yMax, yMin);
+                EntityCondition entityCondition = new EntityCondition(entityName, biomeName, spawnEntityType,entitySite, light, stime,etime, nums, yMax, yMin);
 
                 plugin.getLogger().info(ChatColor.AQUA+entityCondition.toString());
 

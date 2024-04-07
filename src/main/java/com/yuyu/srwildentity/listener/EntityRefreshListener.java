@@ -1,6 +1,7 @@
 package com.yuyu.srwildentity.listener;
 
 
+import com.germ.germplugin.GermPlugin;
 import com.palmergames.bukkit.towny.TownyAPI;
 import com.palmergames.bukkit.towny.event.PlayerEnterTownEvent;
 import com.palmergames.bukkit.towny.event.PlayerLeaveTownEvent;
@@ -9,8 +10,10 @@ import com.yuyu.srwildentity.conditionCheck.ConditionCheck;
 import com.yuyu.srwildentity.config.ConfigManager;
 import com.yuyu.srwildentity.config.condition.EntityCondition;
 import com.yuyu.srwildentity.config.condition.EntitySite;
+import com.yuyu.srwildentity.config.condition.SpawnEntityType;
 import com.yuyu.srwildentity.pojo.PlayerRefreshinfo;
-import jdk.management.resource.internal.inst.FileOutputStreamRMHooks;
+import io.lumine.xikage.mythicmobs.MythicMobs;
+import io.lumine.xikage.mythicmobs.api.exceptions.InvalidMobTypeException;
 import me.clip.placeholderapi.PlaceholderAPI;
 import org.bukkit.*;
 import org.bukkit.block.Biome;
@@ -53,6 +56,8 @@ public class EntityRefreshListener implements Listener, CommandExecutor {
     private List<String> noRefreshPlayer;//记录不需要刷新的玩家
 
     private Plugin plugin;
+    private MythicMobs mythicMobs;
+    private GermPlugin germPlugin;
 
 
 
@@ -66,6 +71,9 @@ public class EntityRefreshListener implements Listener, CommandExecutor {
         this.flag = true;
         this.noRefreshPlayer = new ArrayList<>();
         this.plugin = plugin;
+        //用于获取MM插件和萌芽的实例对象
+        this.mythicMobs = MythicMobs.inst();
+        this.germPlugin = GermPlugin.getPlugin();
 
 
         logger.info(ChatColor.DARK_GREEN+"SrWildEntity定时任务触发");
@@ -162,6 +170,19 @@ public class EntityRefreshListener implements Listener, CommandExecutor {
     }
 
 
+    public void reloadSearch(){
+        Collection<? extends Player> onlinePlayers = plugin.getServer().getOnlinePlayers();
+        for (Player player : onlinePlayers){
+            String name = player.getName();
+            Town town = TownyAPI.getInstance().getTown(player.getLocation());
+            if (town == null){
+                PlayerRefreshinfo playerRefreshinfo = new PlayerRefreshinfo(name, 0, new ArrayList<>());
+                refreshPlayer.put(name, playerRefreshinfo);
+            }
+            logger.info(ChatColor.GREEN+"所有在野外的玩家开始刷新实体");
+        }
+    }
+
     /**
      * 玩家进入城镇,
      * @param event
@@ -170,11 +191,11 @@ public class EntityRefreshListener implements Listener, CommandExecutor {
     public void onPlayerInTown(PlayerEnterTownEvent event) {
         if (flag){
             String name = event.getPlayer().getName();
-            List<UUID> entityList = refreshPlayer.get(name).getEntityList();
-            for (UUID uuid : entityList){
-                //删除储存的实体信息
-                entityUUIDToPlayer.remove(uuid);
-            }
+//            List<UUID> entityList = refreshPlayer.get(name).getEntityList();
+//            for (UUID uuid : entityList){
+//                //删除储存的实体信息
+//                entityUUIDToPlayer.remove(uuid);
+//            }
             refreshPlayer.remove(name);
             logger.info(name + "开始停止怪物");
         }
@@ -245,7 +266,7 @@ public class EntityRefreshListener implements Listener, CommandExecutor {
        if (flag){
             LivingEntity entity = event.getEntity();
             UUID uniqueId = entity.getUniqueId();
-            if (entityUUIDToPlayer.containsKey(uniqueId)) {
+            if (entityUUIDToPlayer.containsKey(uniqueId) && refreshPlayer.containsKey(entityUUIDToPlayer.get(uniqueId))) {
                 //通过死亡实体的uuid获取玩家姓名然后删除uuid
                 String playerName = entityUUIDToPlayer.get(uniqueId);
                 refreshPlayer.get(playerName).delEntityList(uniqueId);
@@ -284,6 +305,9 @@ public class EntityRefreshListener implements Listener, CommandExecutor {
         if (flag) {
             int num = configManager.getNum();//每次执行时刷新的总数
             for (String name : refreshPlayer.keySet()) {
+                if (noRefreshPlayer.contains(name)){
+                    continue;
+                }
                 int sum = 0;//用于记录此次刷新生成的总数
                 //获取玩家信息
                 Player player = plugin.getServer().getPlayer(name);
@@ -347,7 +371,21 @@ public class EntityRefreshListener implements Listener, CommandExecutor {
                             //判断位置是否符合
                             if (ConditionCheck.checkEntityRefresh(world, location, entityCondition)) {
                                 //通过则生成
-                                Entity entity = world.spawnEntity(location, EntityType.valueOf(entityCondition.getEntityName()));
+//                                Entity entity = world.spawnEntity(location, EntityType.valueOf(entityCondition.getEntityName()));
+                                Entity  entity;
+                                //MC原生实体
+                                if (entityCondition.getEntityType() == SpawnEntityType.PROTOGENESIS){
+                                    entity = world.spawnEntity(location, EntityType.valueOf(entityCondition.getEntityName()));
+                                }else {
+                                    //刷新MM怪物
+                                    try {
+                                        entity = mythicMobs.getAPIHelper().spawnMythicMob(entityName, location);
+                                    } catch (InvalidMobTypeException e) {
+                                        throw new RuntimeException(e);
+                                    }
+                                }
+
+
                                 logger.info(ChatColor.GOLD + "在" + x + " " + y + " " + z + "位置刷新了" + entityName);
                                 UUID uniqueId = entity.getUniqueId();
 
@@ -362,7 +400,6 @@ public class EntityRefreshListener implements Listener, CommandExecutor {
                             }
                         } else {
                             //不刷新在地上，在定义的范围内随机高度，概率生成实体，
-                            int range = entityCondition.getyMax() - entityCondition.getyMin() + 1;
                             for (int c = 0; i<nums && c < 10 && sum <= num &&
                                     playerRefreshinfo.getEntityList().size() < configManager.getTotal();
                                  c++) {
@@ -376,7 +413,19 @@ public class EntityRefreshListener implements Listener, CommandExecutor {
                                 //判断位置是否符合
                                 if (ConditionCheck.checkEntityRefresh(world, location, entityCondition)) {
                                     //通过则生成
-                                    Entity entity = world.spawnEntity(location, EntityType.valueOf(entityCondition.getEntityName()));
+                                    Entity  entity;
+                                    //MC原生实体
+                                    if (entityCondition.getEntityType() == SpawnEntityType.PROTOGENESIS){
+                                        entity = world.spawnEntity(location, EntityType.valueOf(entityCondition.getEntityName()));
+                                    }else {
+                                        //刷新MM怪物
+                                        try {
+                                            entity = mythicMobs.getAPIHelper().spawnMythicMob(entityName, location);
+                                        } catch (InvalidMobTypeException e) {
+                                            throw new RuntimeException(e);
+                                        }
+                                    }
+
                                     logger.info(ChatColor.GOLD + "在" + x + " " + y + " " + z + "位置刷新了" + entityName);
                                     UUID uniqueId = entity.getUniqueId();
 
@@ -392,24 +441,6 @@ public class EntityRefreshListener implements Listener, CommandExecutor {
                             }
                         }
 
-//                        Location location = new Location(world, x, y + 1, z);
-//
-//                        //判断位置是否符合
-//                        if (ConditionCheck.checkEntityRefresh(world, location, entityCondition)) {
-//                            //通过则生成
-//                            Entity entity = world.spawnEntity(location, EntityType.valueOf(entityCondition.getEntityName()));
-//                            logger.info(ChatColor.GOLD+"在"+x+" "+y+" "+z+"位置刷新了"+entityName);
-//                            UUID uniqueId = entity.getUniqueId();
-//
-//                            //存入玩家对应的刷新的实体集合，便于寻找
-//                            entityUUIDToPlayer.put(uniqueId,name);
-//
-//                            //存入
-//                            playerRefreshinfo.addEntityList(uniqueId);
-//
-//                            sum++;
-//
-//                        }
                     }
                 }
             }
@@ -425,6 +456,7 @@ public class EntityRefreshListener implements Listener, CommandExecutor {
         return noRefreshPlayer;
     }
 
-
-
+    public void setConfigManager(ConfigManager configManager) {
+        this.configManager = configManager;
+    }
 }
