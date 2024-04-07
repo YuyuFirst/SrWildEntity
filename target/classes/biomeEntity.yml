@@ -1,0 +1,6 @@
+DESERT:  #群系名称,下方标出该群系需要刷新的entity
+  ENTITY: [ZOMBIE,PIG_ZOMBIE] #该群系刷新的entity,具体的怪物刷新配置需要去entityConfig.yml中配置,!!注意此处的实体配置一定要在实体配置文件中存在，否则会不会刷新！
+
+
+ROOFED_FOREST:  #群系名称,下方标出该群系需要刷新的entity
+  ENTITY: [ZOMBIE,PIG_ZOMBIE] #该群系刷新的entity,具体的怪物刷新配置需要去entityConfig.yml中配置,!!注意此处的实体配置一定要在实体配置文件中存在，否则会不会刷新！

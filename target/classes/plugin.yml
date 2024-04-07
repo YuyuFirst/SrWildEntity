@@ -1,0 +1,17 @@
+name: SrWildEntity
+version: '1.0-SNAPSHOT'
+main: com.yuyu.srwildentity.SrWildEntity
+description: 实体刷新插件
+authors: [Yuyu]
+commands:
+  despawn:
+    usage: /<command>
+    aliases: [dsp]
+    description: 只有op能使用的插件
+    permission: op
+    permission-message: 你没有使用权限!
+  srwildentity:
+    usage: /<command>
+    description: 只有op能使用的插件
+    permission: op
+    permission-message: 你没有使用权限!
