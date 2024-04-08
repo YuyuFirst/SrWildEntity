@@ -27,8 +27,10 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;
 import org.bukkit.plugin.Plugin;
 
@@ -76,10 +78,7 @@ public class EntityRefreshListener implements Listener, CommandExecutor {
         this.germPlugin = GermPlugin.getPlugin();
 
 
-        logger.info(ChatColor.DARK_GREEN+"SrWildEntity定时任务触发");
-        //注册定时任务
-        plugin.getServer().getScheduler().scheduleSyncRepeatingTask
-                (this.plugin,this::timedRdfreshEneity,0,configManager.getRefreshTime()*20);
+
 
     }
     /**
@@ -115,8 +114,7 @@ public class EntityRefreshListener implements Listener, CommandExecutor {
                     Collection<? extends Player> onlinePlayers = plugin.getServer().getOnlinePlayers();
                     for (Player player : onlinePlayers){
                         String name = player.getName();
-                        Town town = TownyAPI.getInstance().getTown(player.getLocation());
-                        if (town == null){
+                        if (!this.playerStayTown(player.getLocation())){
                             PlayerRefreshinfo playerRefreshinfo = new PlayerRefreshinfo(name, 0, new ArrayList<>());
                             refreshPlayer.put(name, playerRefreshinfo);
                         }
@@ -133,8 +131,9 @@ public class EntityRefreshListener implements Listener, CommandExecutor {
                     return true;
                 }
             }else {
-                String choice = strings[0];//只能是on，或者off
-                if (choice.equalsIgnoreCase("on") || choice.equalsIgnoreCase("off")){
+                String choice = strings[0];//只能是on，off或者clear
+                if (choice.equalsIgnoreCase("on") || choice.equalsIgnoreCase("off")
+                        || choice.equalsIgnoreCase("clear")){
                     if (choice.equalsIgnoreCase("on")){
                         Player player = plugin.getServer().getPlayer(strings[1]);
                         if (player == null){
@@ -147,7 +146,7 @@ public class EntityRefreshListener implements Listener, CommandExecutor {
                             commandSender.sendMessage(ChatColor.YELLOW+strings[1]+"开始刷怪");
                             return true;
                         }
-                    }else {
+                    }else if (choice.equalsIgnoreCase("off")){
                         Player player = plugin.getServer().getPlayer(strings[1]);
                         if (player == null){
                             commandSender.sendMessage("请输入正确的玩家姓名!");
@@ -159,6 +158,12 @@ public class EntityRefreshListener implements Listener, CommandExecutor {
                             commandSender.sendMessage(ChatColor.YELLOW+strings[1]+"停止刷怪");
                             return true;
                         }
+                    }else {
+                        //清空刷新的怪物
+                       this.clearRefreshEntity();
+                        logger.info(ChatColor.GOLD+"SrWildEntity刷新的所有实体被清除!");
+                        commandSender.sendMessage(ChatColor.GOLD+"SrWildEntity刷新的所有实体被清除!");
+                        return true;
                     }
                 }
             }
@@ -191,13 +196,19 @@ public class EntityRefreshListener implements Listener, CommandExecutor {
     public void onPlayerInTown(PlayerEnterTownEvent event) {
         if (flag){
             String name = event.getPlayer().getName();
-//            List<UUID> entityList = refreshPlayer.get(name).getEntityList();
-//            for (UUID uuid : entityList){
-//                //删除储存的实体信息
-//                entityUUIDToPlayer.remove(uuid);
-//            }
             refreshPlayer.remove(name);
             logger.info(name + "开始停止怪物");
+        }
+    }
+
+    @EventHandler
+    public void playerRevive(PlayerRespawnEvent event){
+        Location respawnLocation = event.getRespawnLocation();
+        if (!this.playerStayTown(respawnLocation)){
+            // 返回true则表示在城镇，不用管
+            //反之增加
+            String name = event.getPlayer().getName();
+            this.playerRefreshEntiyt(name);
         }
     }
 
@@ -209,11 +220,7 @@ public class EntityRefreshListener implements Listener, CommandExecutor {
     public void onPlayerLeaveTown(PlayerLeaveTownEvent event) {
         if (flag) {
             String name = event.getPlayer().getName();
-            if (!noRefreshPlayer.contains(name)) {
-                PlayerRefreshinfo playerRefreshinfo = new PlayerRefreshinfo(name, 0, new ArrayList<>());
-                refreshPlayer.put(name, playerRefreshinfo);
-                logger.info(name + "开始刷新实体");
-            }
+            this.playerRefreshEntiyt(name);
         }
     }
 
@@ -226,11 +233,8 @@ public class EntityRefreshListener implements Listener, CommandExecutor {
         if (flag){
             Player player = event.getPlayer();
             String name = player.getName();
-            Town town = TownyAPI.getInstance().getTown(player.getLocation());
-            if (town == null && !noRefreshPlayer.contains(name)) {
-                PlayerRefreshinfo playerRefreshinfo = new PlayerRefreshinfo(name, 0, new ArrayList<>());
-                refreshPlayer.put(name, playerRefreshinfo);
-                logger.info(ChatColor.MAGIC + player.getName() + "在野外登录，开始刷新实体");
+            if (!this.playerStayTown(player.getLocation()) && !noRefreshPlayer.contains(name)) {
+                this.playerRefreshEntiyt(name);
             }
         }
     }
@@ -458,5 +462,64 @@ public class EntityRefreshListener implements Listener, CommandExecutor {
 
     public void setConfigManager(ConfigManager configManager) {
         this.configManager = configManager;
+    }
+
+
+    /**
+     * 清空所有记录在的实体
+     */
+    public void clearRefreshEntity(){
+        Server server = plugin.getServer();
+        Collection<? extends Player> onlinePlayers = server.getOnlinePlayers();
+        for (Player player : onlinePlayers){
+            String name = player.getName();
+            List<UUID> entityList = refreshPlayer.get(name).getEntityList();
+            for (UUID uuid : entityList){
+                Entity entity = server.getEntity(uuid);
+                if (entity != null){
+                    entity.remove();
+                    if (entityUUIDToPlayer.containsKey(uuid)){
+                        entityUUIDToPlayer.remove(uuid);
+                    }
+                }
+            }
+            //entity清除完后
+            refreshPlayer.get(name).setEntityList(new ArrayList<>());
+        }
+    }
+
+    public void playerRefreshEntiyt(String name){
+        if (!noRefreshPlayer.contains(name) && !entityUUIDToPlayer.containsValue(name)) {
+
+            PlayerRefreshinfo playerRefreshinfo = new PlayerRefreshinfo(name, 0, new ArrayList<>());
+            refreshPlayer.put(name, playerRefreshinfo);
+            logger.info(name + "开始刷新实体");
+        }else {
+            List<UUID> uuidList = new ArrayList<>();
+            for (UUID uuid : entityUUIDToPlayer.keySet()){
+                String s = entityUUIDToPlayer.get(uuid);
+                if (s.equals(name)){
+                    uuidList.add(uuid);
+                }
+            }
+            PlayerRefreshinfo playerRefreshinfo = new PlayerRefreshinfo(name,0, uuidList);
+            refreshPlayer.put(name, playerRefreshinfo);
+            logger.info(name + "开始刷新实体");
+        }
+    }
+
+    /**
+     * 用于判断玩家是否在城镇
+     * @param location
+     * @return
+     */
+    public boolean playerStayTown(Location location) {
+        Town town = TownyAPI.getInstance().getTown(location);
+        if (town == null){
+            //为空则不再城镇
+            return false;
+        }else {
+            return true;
+        }
     }
 }

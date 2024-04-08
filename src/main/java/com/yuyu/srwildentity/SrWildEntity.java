@@ -34,6 +34,14 @@ public final class SrWildEntity extends JavaPlugin implements CommandExecutor {
 
         Bukkit.getPluginManager().registerEvents(entityRefreshListener,this);
 
+        //注册定时任务
+        this.getServer().getScheduler().scheduleSyncRepeatingTask
+                (this,this.entityRefreshListener::timedRdfreshEneity,
+                        0,this.entityRefreshListener.getConfigManager().getRefreshTime()*20);
+
+        getLogger().info(ChatColor.DARK_GREEN+"SrWildEntity定时任务触发");
+
+
         this.getCommand("despawn").setExecutor(entityRefreshListener);
         this.getCommand("SrWildEntity").setExecutor(this::onCommand);
 
@@ -72,9 +80,20 @@ public final class SrWildEntity extends JavaPlugin implements CommandExecutor {
                 commandSender.sendMessage(ChatColor.RED+"请加上reload操作");
             }else {
                 if (strings[0].equalsIgnoreCase("reload")){
+
+                    getLogger().info(ChatColor.GOLD+"SrWildEntity定时任务关闭");
+                    Bukkit.getScheduler().cancelTasks(this);
+
                     getLogger().info(ChatColor.AQUA+"SrWildEntity重新读取配置文件");
                     commandSender.sendMessage(ChatColor.YELLOW+"SrWildEntity重新读取配置文件");
                     entityRefreshListener.setConfigManager(this.onload());
+
+                    //注册定时任务
+                    this.getServer().getScheduler().scheduleSyncRepeatingTask
+                            (this,this.entityRefreshListener::timedRdfreshEneity,
+                                    0,this.entityRefreshListener.getConfigManager().getRefreshTime()*20);
+
+                    getLogger().info(ChatColor.DARK_GREEN+"SrWildEntity定时任务触发");
 
                 }
             }
