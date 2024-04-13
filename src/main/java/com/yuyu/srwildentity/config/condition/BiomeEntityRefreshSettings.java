@@ -55,7 +55,10 @@ public class BiomeEntityRefreshSettings {
                 int nums = config.getInt(biomeName+"."+entityName+".nums");
                 int yMax = config.getInt(biomeName+"."+entityName+".yMax");
                 int yMin = config.getInt(biomeName+"."+entityName+".yMin");
-                EntityCondition entityCondition = new EntityCondition(entityName, biomeName, spawnEntityType,entitySite, light, stime,etime, nums, yMax, yMin);
+                int riskMax = config.getInt(biomeName+"."+entityName+".riskMax");
+                int riskMin = config.getInt(biomeName+"."+entityName+".riskMin");
+                EntityCondition entityCondition = new EntityCondition(entityName, biomeName,
+                        spawnEntityType,entitySite, light, stime,etime, nums, yMax, yMin,riskMax,riskMin);
 
                 plugin.getLogger().info(ChatColor.AQUA+entityCondition.toString());
 

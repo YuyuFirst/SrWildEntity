@@ -20,8 +20,10 @@ public class EntityCondition {
     private final int nums;//刷新的数量
     private final int yMax;
     private final int yMin;
+    private final int riskMax;
+    private final int riskMin;
 
-    public EntityCondition(String entityName, String biome, SpawnEntityType spawnEntityType, EntitySite entitySite, int light, long startTiming, long endTiming, int nums, int yMax, int yMin) {
+    public EntityCondition(String entityName, String biome, SpawnEntityType spawnEntityType, EntitySite entitySite, int light, long startTiming, long endTiming, int nums, int yMax, int yMin,int riskMax,int riskMin) {
         this.entityName = entityName;
         this.biome = biome;
         this.spawnEntityType = spawnEntityType;
@@ -32,6 +34,20 @@ public class EntityCondition {
         this.nums = nums;
         this.yMax = yMax;
         this.yMin = yMin;
+        this.riskMax = riskMax;
+        this.riskMin = riskMin;
+    }
+
+    public SpawnEntityType getSpawnEntityType() {
+        return spawnEntityType;
+    }
+
+    public int getRiskMax() {
+        return riskMax;
+    }
+
+    public int getRiskMin() {
+        return riskMin;
     }
 
     public SpawnEntityType getEntityType() {
@@ -87,6 +103,8 @@ public class EntityCondition {
                 ", nums=" + nums +
                 ", yMax=" + yMax +
                 ", yMin=" + yMin +
+                ", riskMax=" + riskMax +
+                ", riskMin=" + riskMin +
                 '}';
     }
 }

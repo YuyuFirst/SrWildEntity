@@ -27,7 +27,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDeathEvent;
-import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
@@ -322,7 +321,6 @@ public class EntityRefreshListener implements Listener, CommandExecutor {
                 //TODO(危险度提示,后续需要使用这个变量去控制怪物的参数等级`)
                 logger.info(ChatColor.GREEN + "危险度为:" + level);
 
-
                 Location playerlocation = player.getLocation();
 
                 //获取玩家位置信息
@@ -347,6 +345,15 @@ public class EntityRefreshListener implements Listener, CommandExecutor {
                 for (String entityName : entityList){
                     //获取entity配置
                     EntityCondition entityCondition = entityConditionHashMap.get(entityName);
+
+                    //危险度验证，通过才能刷新
+                    int riskMax = entityCondition.getRiskMax();
+                    int riskMin = entityCondition.getRiskMin();
+
+                    if (level >= riskMax || level < riskMin){
+                        //不在范围内则跳过
+                        continue;
+                    }
 
                     int yMin = entityCondition.getyMin();
                     int yMax = entityCondition.getyMax();
@@ -383,7 +390,7 @@ public class EntityRefreshListener implements Listener, CommandExecutor {
                                 }else {
                                     //刷新MM怪物
                                     try {
-                                        entity = mythicMobs.getAPIHelper().spawnMythicMob(entityName, location);
+                                        entity = mythicMobs.getAPIHelper().spawnMythicMob(entityName, location,level);
                                     } catch (InvalidMobTypeException e) {
                                         throw new RuntimeException(e);
                                     }
