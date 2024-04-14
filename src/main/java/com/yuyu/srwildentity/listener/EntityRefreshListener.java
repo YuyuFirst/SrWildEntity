@@ -243,20 +243,19 @@ public class EntityRefreshListener implements Listener, CommandExecutor {
      * @param event
      */
     @EventHandler
-    public void onPlayerOffOnline(PlayerQuitEvent event){
-      if (flag) {
+    public void onPlayerOffOnline(PlayerQuitEvent event) {
+        if (flag) {
             Player player = event.getPlayer();
             String name = player.getName();
             //下线后移出刷新列表
-            if (refreshPlayer.get(name) != null) {
-                List<UUID> entityList = refreshPlayer.get(name).getEntityList();
-                for (UUID uuid : entityList){
-                    //删除储存的实体信息
-                   entityUUIDToPlayer.remove(uuid);
-                }
-                refreshPlayer.remove(name);
-                logger.info(ChatColor.GOLD + "玩家被移出刷新集合");
-            }
+//            if (refreshPlayer.get(name) != null) {
+//                List<UUID> entityList = refreshPlayer.get(name).getEntityList();
+//                for (UUID uuid : entityList){
+//                    //删除储存的实体信息
+//                   entityUUIDToPlayer.remove(uuid);
+//                }
+            refreshPlayer.remove(name);
+            logger.info(ChatColor.GOLD + "玩家被移出刷新集合");
         }
     }
 
@@ -295,7 +294,9 @@ public class EntityRefreshListener implements Listener, CommandExecutor {
                 //通过uuid获取对应的玩家姓名,然后通过玩家姓名获取对应的list集合
                 String name = entityUUIDToPlayer.get(uniqueId);
 
-                refreshPlayer.get(name).delEntityList(uniqueId);
+                if (refreshPlayer.containsKey(name)) {
+                    refreshPlayer.get(name).delEntityList(uniqueId);
+                }
             }
         }
     }
@@ -311,6 +312,7 @@ public class EntityRefreshListener implements Listener, CommandExecutor {
                 if (noRefreshPlayer.contains(name)){
                     continue;
                 }
+                int attempts = 0;
                 int sum = 0;//用于记录此次刷新生成的总数
                 //获取玩家信息
                 Player player = plugin.getServer().getPlayer(name);
@@ -360,6 +362,11 @@ public class EntityRefreshListener implements Listener, CommandExecutor {
 
                     //如果玩家所在位置不再设置的y轴高度内，则不刷新此entity
                     if (yMin > blockY || yMax < blockY){
+                        continue;
+                    }
+
+                    if (random.nextFloat() > entityCondition.getWeight()){
+                        //刷新不通过,进入下一个验证的实体
                         continue;
                     }
 
@@ -488,10 +495,24 @@ public class EntityRefreshListener implements Listener, CommandExecutor {
                     if (entityUUIDToPlayer.containsKey(uuid)){
                         entityUUIDToPlayer.remove(uuid);
                     }
+                }else {
+                    if (entityUUIDToPlayer.containsKey(uuid)){
+                        entityUUIDToPlayer.remove(uuid);
+                    }
                 }
             }
             //entity清除完后
             refreshPlayer.get(name).setEntityList(new ArrayList<>());
+        }
+
+        for (UUID uuid : entityUUIDToPlayer.keySet()){
+            Entity entity = plugin.getServer().getEntity(uuid);
+            if (entity != null){
+                entity.remove();
+                entityUUIDToPlayer.remove(uuid);
+            }else {
+                entityUUIDToPlayer.remove(uuid);
+            }
         }
     }
 

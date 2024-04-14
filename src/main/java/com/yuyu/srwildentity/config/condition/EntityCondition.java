@@ -22,8 +22,11 @@ public class EntityCondition {
     private final int yMin;
     private final int riskMax;
     private final int riskMin;
+    private final double weight;
 
-    public EntityCondition(String entityName, String biome, SpawnEntityType spawnEntityType, EntitySite entitySite, int light, long startTiming, long endTiming, int nums, int yMax, int yMin,int riskMax,int riskMin) {
+    public EntityCondition(String entityName, String biome, SpawnEntityType spawnEntityType, EntitySite entitySite,
+                           int light, long startTiming, long endTiming, int nums,
+                           int yMax, int yMin,int riskMax,int riskMin, double weight) {
         this.entityName = entityName;
         this.biome = biome;
         this.spawnEntityType = spawnEntityType;
@@ -36,6 +39,7 @@ public class EntityCondition {
         this.yMin = yMin;
         this.riskMax = riskMax;
         this.riskMin = riskMin;
+        this.weight = weight;
     }
 
     public SpawnEntityType getSpawnEntityType() {
@@ -90,6 +94,10 @@ public class EntityCondition {
         return yMin;
     }
 
+    public double getWeight() {
+        return weight;
+    }
+
     @Override
     public String toString() {
         return "EntityCondition{" +
@@ -105,6 +113,7 @@ public class EntityCondition {
                 ", yMin=" + yMin +
                 ", riskMax=" + riskMax +
                 ", riskMin=" + riskMin +
+                ", weight=" + weight +
                 '}';
     }
 }

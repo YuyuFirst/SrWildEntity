@@ -51,4 +51,5 @@ public class ConfigManager {
     public int getTotal() {
         return total;
     }
+
 }
