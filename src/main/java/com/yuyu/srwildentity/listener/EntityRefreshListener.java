@@ -10,13 +10,16 @@ import com.yuyu.srwildentity.conditionCheck.ConditionCheck;
 import com.yuyu.srwildentity.config.ConfigManager;
 import com.yuyu.srwildentity.config.condition.EntityCondition;
 import com.yuyu.srwildentity.config.condition.EntitySite;
+import com.yuyu.srwildentity.config.condition.LevelRefresh;
 import com.yuyu.srwildentity.config.condition.SpawnEntityType;
+import com.yuyu.srwildentity.pojo.BlackListArea;
 import com.yuyu.srwildentity.pojo.PlayerRefreshinfo;
 import io.lumine.xikage.mythicmobs.MythicMobs;
 import io.lumine.xikage.mythicmobs.api.exceptions.InvalidMobTypeException;
 import me.clip.placeholderapi.PlaceholderAPI;
 import org.bukkit.*;
 import org.bukkit.block.Biome;
+import org.bukkit.block.Block;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -132,7 +135,7 @@ public class EntityRefreshListener implements Listener, CommandExecutor {
             }else {
                 String choice = strings[0];//只能是on，off或者clear
                 if (choice.equalsIgnoreCase("on") || choice.equalsIgnoreCase("off")
-                        || choice.equalsIgnoreCase("clear")){
+                        || choice.equalsIgnoreCase("clear") || choice.equalsIgnoreCase("location")){
                     if (choice.equalsIgnoreCase("on")){
                         Player player = plugin.getServer().getPlayer(strings[1]);
                         if (player == null){
@@ -157,12 +160,24 @@ public class EntityRefreshListener implements Listener, CommandExecutor {
                             commandSender.sendMessage(ChatColor.YELLOW+strings[1]+"停止刷怪");
                             return true;
                         }
-                    }else {
+                    }else if (choice.equalsIgnoreCase("clear")){
                         //清空刷新的怪物
                        this.clearRefreshEntity();
                         logger.info(ChatColor.GOLD+"SrWildEntity刷新的所有实体被清除!");
                         commandSender.sendMessage(ChatColor.GOLD+"SrWildEntity刷新的所有实体被清除!");
                         return true;
+                    }else if (choice.equalsIgnoreCase("location")){
+                        if (commandSender instanceof Player){
+                            Player player = (Player) commandSender;
+                            Location location = player.getLocation();
+                            player.sendMessage(ChatColor.GREEN+"x:"+location.getBlockX()+"\ty:"
+                                    +location.getBlockY()+"\tz:"+location.getBlockZ()+"\tworld:"+location.getWorld().getName());
+                            logger.info(ChatColor.GREEN+"x:"+location.getBlockX()+"\ty:"
+                                    +location.getBlockY()+"\tz:"+location.getBlockZ()+"\tworld:"+location.getWorld().getName());
+                            return true;
+                        }else {
+                            return false;
+                        }
                     }
                 }
             }
@@ -308,65 +323,102 @@ public class EntityRefreshListener implements Listener, CommandExecutor {
     public void timedRdfreshEneity(){
         if (flag) {
             int num = configManager.getNum();//每次执行时刷新的总数
+            //遍历需要刷新的玩家
+            tag:
             for (String name : refreshPlayer.keySet()) {
                 if (noRefreshPlayer.contains(name)){
                     continue;
                 }
+
                 int attempts = 0;
                 int sum = 0;//用于记录此次刷新生成的总数
                 //获取玩家信息
                 Player player = plugin.getServer().getPlayer(name);
                 PlayerRefreshinfo playerRefreshinfo = refreshPlayer.get(name);
+                Location playerlocation = player.getLocation();
+                World world = playerlocation.getWorld();
+
+                String worldName = world.getName();
+                 boolean pass = false;
+
+                 //如果黑名单的set集合里面包含有该世界的名字，则跳过该玩家
+                 if (configManager.getBlacklistWorldSet().contains(worldName)){
+                     continue;
+                 }
+
+                if (configManager.getBlackListAreaMap().containsKey(worldName)){
+                    List<BlackListArea> blackListAreas = configManager.getBlackListAreaMap().get(worldName);
+                    for (BlackListArea blackListArea : blackListAreas){
+                        int blockX = playerlocation.getBlockX();
+                        int blockZ = playerlocation.getBlockZ();
+                        if (blackListArea.getX1() >= blockX && blockX >= blackListArea.getX2()
+                                && blackListArea.getY1() >= blockZ && blockZ >= blackListArea.getY2()){
+                            //tag为循环标志，此处会直接结束tag标志处的循环
+                            continue tag;
+                        }
+                    }
+
+                }
 
                 //玩家危险度,用于刷新实体的等级
-                int level = this.prRisk(player);
-                //TODO(危险度提示,后续需要使用这个变量去控制怪物的参数等级`)
-                logger.info(ChatColor.GREEN + "危险度为:" + level);
+                int riskLevel = this.prRisk(player);
+                if (riskLevel == 0){
+                    //等于0不刷新怪物,直接跳过
+                    continue;
+                }
 
-                Location playerlocation = player.getLocation();
+                LevelRefresh refreshList = null;
+                List<LevelRefresh> levelRefreshesList = configManager.getBiomeEntityRefreshSettings().getLevelRefreshesList();
+                for (LevelRefresh levelRefresh : levelRefreshesList){
+                    if (riskLevel > levelRefresh.getRiskMin() && riskLevel <= levelRefresh.getRiskMax()){
+                        refreshList = levelRefresh;
+                    }
+                }
+
+                if (refreshList == null){
+                    logger.info(ChatColor.MAGIC+name+"所在群系"+"没有危险度为:"+riskLevel+"时适配的刷新列表");
+                    continue;
+                }
+
+
 
                 //获取玩家位置信息
-                World world = playerlocation.getWorld();
                 int blockZ = playerlocation.getBlockZ();
                 int blockX = playerlocation.getBlockX();
                 int blockY = playerlocation.getBlockY();
                 Biome biome = world.getBiome(blockX, blockZ);
                 String biomeName = biome.name();
 
-                //需要刷新的entity列表
-                List<String> entityList = configManager.getBiomeEntityRefreshSettings().getBiomeEntityMap().get(biomeName);
-                //entity条件配置
-                HashMap<String, EntityCondition> entityConditionHashMap =
-                        configManager.getBiomeEntityRefreshSettings().getBiomeEntityConditionMap().get(biomeName);
+                List<EntityCondition> entityConditionList = null;
 
-                if (entityList == null || entityConditionHashMap == null){
+                HashMap<String, List<EntityCondition>> entityConditionHashMap = refreshList.getEntityConditionHashMap();
+                for (String refreshBiome : entityConditionHashMap.keySet()){
+                    if (biomeName.contains(refreshBiome)){
+                        entityConditionList = entityConditionHashMap.get(refreshBiome);
+                    }
+                }
+
+
+                if (entityConditionList == null){
                     logger.info(ChatColor.RED+"没有配置"+biomeName+"群系的实体刷新案例");
                     continue;
                 }
 
-                for (String entityName : entityList){
-                    //获取entity配置
-                    EntityCondition entityCondition = entityConditionHashMap.get(entityName);
+                for (EntityCondition entityCondition : entityConditionList){
 
-                    //危险度验证，通过才能刷新
-                    int riskMax = entityCondition.getRiskMax();
-                    int riskMin = entityCondition.getRiskMin();
-
-                    if (level >= riskMax || level < riskMin){
-                        //不在范围内则跳过
-                        continue;
-                    }
 
                     int yMin = entityCondition.getyMin();
                     int yMax = entityCondition.getyMax();
 
                     //如果玩家所在位置不再设置的y轴高度内，则不刷新此entity
                     if (yMin > blockY || yMax < blockY){
+//                        logger.info(ChatColor.RED+"刷新高度不通过"+entityCondition.getEntityName());
                         continue;
                     }
-
-                    if (random.nextFloat() > entityCondition.getWeight()){
+                    float v = random.nextFloat();
+                    if ( entityCondition.getWeight() < v){
                         //刷新不通过,进入下一个验证的实体
+//                        logger.info(ChatColor.RED+"刷新权重不通过"+entityCondition.getEntityName()+"权重:"+entityCondition.getWeight()+"\t"+v);
                         continue;
                     }
 
@@ -374,17 +426,17 @@ public class EntityRefreshListener implements Listener, CommandExecutor {
 
                     for (int i = 0;i<nums &&
                             playerRefreshinfo.getEntityList().size() < configManager.getTotal()
-                            && sum <= num; i++) {
+                             && sum <= num
+                            && attempts <= configManager.getAttempts(); i++) {
 
                         // 生成x和y坐标,会随机在玩家方圆15个方块的距离内随机生成
                         int x =blockX + random.nextInt(30) - 15; // 生成0到60之间的随机数，然后减去30，得到-30到30的范围
                         int z =blockZ + random.nextInt(30) - 15; // 同上,在玩家附近随机位置生成
-                        int y;
+                        int y =blockY + random.nextInt(3) - 2; //在玩家Y轴上下3格尝试刷新
                         //刷新在地上，直接获取最高的x z 最高处的坐标
                         if (entityCondition.getEntitySite() == EntitySite.ON_GROUND) {
-                            y = world.getHighestBlockYAt(x, z);
 
-                            Location location = new Location(world, x, y + 1, z);
+                            Location location = new Location(world, x, y , z);
 
                             //判断位置是否符合
                             if (ConditionCheck.checkEntityRefresh(world, location, entityCondition)) {
@@ -397,14 +449,13 @@ public class EntityRefreshListener implements Listener, CommandExecutor {
                                 }else {
                                     //刷新MM怪物
                                     try {
-                                        entity = mythicMobs.getAPIHelper().spawnMythicMob(entityName, location,level);
+                                        entity = mythicMobs.getAPIHelper().spawnMythicMob(entityCondition.getEntityName(),location,riskLevel);
                                     } catch (InvalidMobTypeException e) {
                                         throw new RuntimeException(e);
                                     }
                                 }
 
-
-                                logger.info(ChatColor.GOLD + "在" + x + " " + y + " " + z + "位置刷新了" + entityName);
+                                logger.info(ChatColor.GOLD + "在" + x + " " + y + " " + z + "位置刷新了" + entityCondition.getEntityName());
                                 UUID uniqueId = entity.getUniqueId();
 
                                 //存入玩家对应的刷新的实体集合，便于寻找
@@ -412,7 +463,7 @@ public class EntityRefreshListener implements Listener, CommandExecutor {
 
                                 //存入
                                 playerRefreshinfo.addEntityList(uniqueId);
-
+                                attempts++;
                                 sum++;
 
                             }
@@ -422,9 +473,12 @@ public class EntityRefreshListener implements Listener, CommandExecutor {
                                     playerRefreshinfo.getEntityList().size() < configManager.getTotal();
                                  c++) {
                                 //循环十次验证刷新位置
-                                y = blockY + random.nextInt(6) - 6;//在玩家所在高度的上下六格内生成，便于当玩家在洞穴时，定位洞穴
+                                y = blockY + random.nextInt(3) - 3;//在玩家所在高度的上下三格内生成，便于当玩家在洞穴时，定位洞穴
                                 x = blockX + random.nextInt(30) - 15; // 生成0到60之间的随机数，然后减去30，得到-30到30的范围
                                 z = blockZ + random.nextInt(30) - 15; // 同上,在玩家附近随机位置生成
+                                if (entityCondition.getEntitySite() == EntitySite.ON_GROUND) {
+                                    y = world.getHighestBlockYAt(x,z);
+                                }
 
                                 Location location = new Location(world, x, y + 1, z);
 
@@ -438,13 +492,13 @@ public class EntityRefreshListener implements Listener, CommandExecutor {
                                     }else {
                                         //刷新MM怪物
                                         try {
-                                            entity = mythicMobs.getAPIHelper().spawnMythicMob(entityName, location);
+                                            entity = mythicMobs.getAPIHelper().spawnMythicMob(entityCondition.getEntityName(), location);
                                         } catch (InvalidMobTypeException e) {
                                             throw new RuntimeException(e);
                                         }
                                     }
 
-                                    logger.info(ChatColor.GOLD + "在" + x + " " + y + " " + z + "位置刷新了" + entityName);
+                                    logger.info(ChatColor.GOLD + "在" + x + " " + y + " " + z + "位置刷新了" + entityCondition.getEntityName());
                                     UUID uniqueId = entity.getUniqueId();
 
                                     //存入玩家对应的刷新的实体集合，便于寻找
@@ -454,11 +508,10 @@ public class EntityRefreshListener implements Listener, CommandExecutor {
                                     playerRefreshinfo.addEntityList(uniqueId);
                                     i++;
                                     sum++;
-
+                                    attempts++;
                                 }
                             }
                         }
-
                     }
                 }
             }

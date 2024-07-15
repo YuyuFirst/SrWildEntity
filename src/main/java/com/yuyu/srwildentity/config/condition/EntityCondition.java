@@ -23,7 +23,26 @@ public class EntityCondition {
     private final int riskMax;
     private final int riskMin;
     private final double weight;
+    private long refreshTime;
 
+    public EntityCondition(String entityName, String biome, SpawnEntityType spawnEntityType, EntitySite entitySite,
+                           int light, long startTiming, long endTiming, int nums,
+                           int yMax, int yMin,int riskMax,int riskMin, double weight, long refreshTime) {
+        this.entityName = entityName;
+        this.biome = biome;
+        this.spawnEntityType = spawnEntityType;
+        this.entitySite = entitySite;
+        this.light = light;
+        this.startTiming = startTiming;
+        this.endTimeing = endTiming;
+        this.nums = nums;
+        this.yMax = yMax;
+        this.yMin = yMin;
+        this.riskMax = riskMax;
+        this.riskMin = riskMin;
+        this.weight = weight;
+        this.refreshTime = refreshTime;
+    }
     public EntityCondition(String entityName, String biome, SpawnEntityType spawnEntityType, EntitySite entitySite,
                            int light, long startTiming, long endTiming, int nums,
                            int yMax, int yMin,int riskMax,int riskMin, double weight) {
@@ -96,6 +115,10 @@ public class EntityCondition {
 
     public double getWeight() {
         return weight;
+    }
+
+    public long getRefreshTime() {
+        return refreshTime;
     }
 
     @Override

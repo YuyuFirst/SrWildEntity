@@ -23,7 +23,6 @@ ROOFED_FOREST:
     yMin: 60 #最小刷新高度
     riskMax: 10  #刷新危险度的范围
     riskMin: 0
-
   PIG_ZOMBIE: #指出entity在该群系的刷新条件
     type: 0 #0表示生成mc原生实体，1表示生成MM怪物，2表示生成萌芽怪物
     site: 1 #刷新位置,数字代表不同的刷新位置

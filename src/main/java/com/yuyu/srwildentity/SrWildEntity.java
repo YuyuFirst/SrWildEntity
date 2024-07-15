@@ -1,6 +1,8 @@
 package com.yuyu.srwildentity;
 
+import com.yuyu.srwildentity.JDBC.JdbcSqlClass;
 import com.yuyu.srwildentity.config.ConfigManager;
+import com.yuyu.srwildentity.listener.AreaRefershListener;
 import com.yuyu.srwildentity.listener.EntityRefreshListener;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -21,18 +23,21 @@ import org.bukkit.plugin.java.JavaPlugin;
 public final class SrWildEntity extends JavaPlugin implements CommandExecutor {
 
     private EntityRefreshListener entityRefreshListener;
+    private AreaRefershListener areaRefershListener;
 
 
     @Override
     public void onEnable() {
         getLogger().info(ChatColor.AQUA+"SrWildEntity开始运行");
-        onload();
+        ConfigManager onload = onload();
 
 
         //TODO(注册监听类,测试)
-         this.entityRefreshListener = new EntityRefreshListener(this.getLogger(),onload(),this);
+         this.entityRefreshListener = new EntityRefreshListener(this.getLogger(),onload,this);
+         this.areaRefershListener = new AreaRefershListener(onload);
 
         Bukkit.getPluginManager().registerEvents(entityRefreshListener,this);
+        Bukkit.getPluginManager().registerEvents(areaRefershListener,this);
 
         //注册定时任务
         this.getServer().getScheduler().scheduleSyncRepeatingTask
@@ -58,6 +63,9 @@ public final class SrWildEntity extends JavaPlugin implements CommandExecutor {
 
     @Override
     public void onDisable() {
+        //关闭时，保存数据
+        JdbcSqlClass.deleteData();
+        JdbcSqlClass.saveData(areaRefershListener.getUuidStringHashMap());
     }
 
     /**
@@ -86,7 +94,9 @@ public final class SrWildEntity extends JavaPlugin implements CommandExecutor {
 
                     getLogger().info(ChatColor.AQUA+"SrWildEntity重新读取配置文件");
                     commandSender.sendMessage(ChatColor.YELLOW+"SrWildEntity重新读取配置文件");
-                    entityRefreshListener.setConfigManager(this.onload());
+                    ConfigManager onload = this.onload();
+                    entityRefreshListener.setConfigManager(onload);
+                    areaRefershListener.setConfigManager(onload);
 
                     //注册定时任务
                     this.getServer().getScheduler().scheduleSyncRepeatingTask

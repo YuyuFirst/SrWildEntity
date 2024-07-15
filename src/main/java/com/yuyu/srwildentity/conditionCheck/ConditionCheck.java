@@ -7,6 +7,8 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 
+import java.util.HashSet;
+
 /**
  * @BelongsProject: SrWildEntity
  * @BelongsPackage: com.yuyu.srwildentity.conditionCheck
@@ -17,6 +19,11 @@ import org.bukkit.block.Block;
  * @Description: 用于检查是否通过
  */
 public class ConditionCheck {
+
+
+    //实体碰撞
+    public static final HashSet<Material> noEntityCollision = new HashSet<>();
+
     /**
      * 检查entity生成位置是否符合
      * 1.位置
@@ -30,11 +37,30 @@ public class ConditionCheck {
      */
     public static boolean checkEntityRefresh(World world, Location location, EntityCondition entityCondition){
 
-        return checkLocation(world,location,entityCondition.getEntitySite())
+        return (checkLocation(world,location,entityCondition.getEntitySite())
                 && checkLight(world,location,entityCondition.getLight())
                 && checkTimed(world,entityCondition.getStartTiming(), entityCondition.getEndTimeing())
-                && checkY(location,entityCondition.getyMax(), entityCondition.getyMin());
+                && checkY(location,entityCondition.getyMax(), entityCondition.getyMin()));
     }
+
+//    private static boolean checkHeight(Location location, World world) {
+//        int blockY = location.getBlockY();
+//        for (int i = 1;i<2;i++){
+//            blockY+=2;
+//            location.setY(blockY);
+//            Block block = location.getBlock();
+//            if(block.getType() != Material.AIR
+//            && block.getType() != Material.WATER
+//            && block.getType() != Material.STATIONARY_WATER
+//            && block.getType() != Material.LONG_GRASS
+//            && block.getType() != Material.YELLOW_FLOWER
+//            && block.getType() != Material.FLOWER_POT
+//            && block.getType() != Material.CHORUS_FLOWER){
+//                return false;
+//            }
+//        }
+//        return true;
+//    }
 
     /**
      * 检查刷新位置
@@ -50,8 +76,17 @@ public class ConditionCheck {
         }
 
         if (entitySite == EntitySite.ON_GROUND){
-            Block blockAt = world.getBlockAt(location);
-            return  blockAt.getType().name().equals(Material.AIR.name());
+            //实体的刷新位置
+            Block block = world.getBlockAt(location);
+            //实体的落脚点
+            Block blockAt = world.getBlockAt(new Location(world,location.getBlockX(),location.getBlockY() + 1,location.getBlockZ()));
+            Block blockAt0 = world.getBlockAt(new Location(world,location.getBlockX(),location.getBlockY() + 2,location.getBlockZ()));
+            Block blockAt1 = world.getBlockAt(new Location(world,location.getBlockX(),location.getBlockY() - 1,location.getBlockZ()));
+
+            return  (noEntityCollision.contains(block.getType()) &&
+                    noEntityCollision.contains(blockAt.getType()) &&
+                    !noEntityCollision.contains(blockAt1.getType()) &&
+                    noEntityCollision.contains(blockAt0.getType()));
 
         }
         if (entitySite == EntitySite.NULL){

@@ -1,3 +1,12 @@
 RefreshTime: 10 #刷新时间，单位为s
-total: 12 #每个玩家每次刷新的实体数量
+total: 12 #每个玩家最多刷新的实体数量
 num: 4 #单次刷新的最大数量，每RefreshTime秒刷新的数量
+LEVEL_MAX: 2 #能够刷新的最高等级,便于读取文件
+attempts: 6 #权重通过时，随机位置的最大次数
+blacklistNums: 1 #黑名单区域的数量的数量
+location_1:  #黑名单区域
+  world_name: TravelersDreamCompact
+  x1: 100
+  z1: 100
+  x2: 200
+  z2: 200
