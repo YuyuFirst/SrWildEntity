@@ -4,11 +4,13 @@ import com.yuyu.srwildentity.JDBC.JdbcSqlClass;
 import com.yuyu.srwildentity.config.ConfigManager;
 import com.yuyu.srwildentity.listener.AreaRefershListener;
 import com.yuyu.srwildentity.listener.EntityRefreshListener;
+import lombok.Getter;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
 /**
@@ -24,6 +26,11 @@ public final class SrWildEntity extends JavaPlugin implements CommandExecutor {
 
     private EntityRefreshListener entityRefreshListener;
     private AreaRefershListener areaRefershListener;
+
+    public static Plugin getInance(){
+        return  Bukkit.getPluginManager().getPlugin("SrWildEntity");
+
+    }
 
 
     @Override

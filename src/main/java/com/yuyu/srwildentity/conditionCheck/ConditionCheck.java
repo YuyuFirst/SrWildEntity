@@ -43,25 +43,6 @@ public class ConditionCheck {
                 && checkY(location,entityCondition.getyMax(), entityCondition.getyMin()));
     }
 
-//    private static boolean checkHeight(Location location, World world) {
-//        int blockY = location.getBlockY();
-//        for (int i = 1;i<2;i++){
-//            blockY+=2;
-//            location.setY(blockY);
-//            Block block = location.getBlock();
-//            if(block.getType() != Material.AIR
-//            && block.getType() != Material.WATER
-//            && block.getType() != Material.STATIONARY_WATER
-//            && block.getType() != Material.LONG_GRASS
-//            && block.getType() != Material.YELLOW_FLOWER
-//            && block.getType() != Material.FLOWER_POT
-//            && block.getType() != Material.CHORUS_FLOWER){
-//                return false;
-//            }
-//        }
-//        return true;
-//    }
-
     /**
      * 检查刷新位置
      * @param world
@@ -81,11 +62,11 @@ public class ConditionCheck {
             //实体的落脚点
             Block blockAt = world.getBlockAt(new Location(world,location.getBlockX(),location.getBlockY() + 1,location.getBlockZ()));
             Block blockAt0 = world.getBlockAt(new Location(world,location.getBlockX(),location.getBlockY() + 2,location.getBlockZ()));
-            Block blockAt1 = world.getBlockAt(new Location(world,location.getBlockX(),location.getBlockY() - 1,location.getBlockZ()));
+            Block b = world.getBlockAt(new Location(world,location.getBlockX(),location.getBlockY() - 1,location.getBlockZ()));
 
             return  (noEntityCollision.contains(block.getType()) &&
                     noEntityCollision.contains(blockAt.getType()) &&
-                    !noEntityCollision.contains(blockAt1.getType()) &&
+                    !noEntityCollision.contains(b.getType()) &&
                     noEntityCollision.contains(blockAt0.getType()));
 
         }

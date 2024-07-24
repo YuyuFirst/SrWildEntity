@@ -170,10 +170,11 @@ public class EntityRefreshListener implements Listener, CommandExecutor {
                         if (commandSender instanceof Player){
                             Player player = (Player) commandSender;
                             Location location = player.getLocation();
+                            String blockname = location.getBlock().getType().name();
                             player.sendMessage(ChatColor.GREEN+"x:"+location.getBlockX()+"\ty:"
-                                    +location.getBlockY()+"\tz:"+location.getBlockZ()+"\tworld:"+location.getWorld().getName());
+                                    +location.getBlockY()+"\tz:"+location.getBlockZ()+"\tworld:"+location.getWorld().getName()+"\t"+blockname);
                             logger.info(ChatColor.GREEN+"x:"+location.getBlockX()+"\ty:"
-                                    +location.getBlockY()+"\tz:"+location.getBlockZ()+"\tworld:"+location.getWorld().getName());
+                                    +location.getBlockY()+"\tz:"+location.getBlockZ()+"\tworld:"+location.getWorld().getName()+"\t"+blockname);
                             return true;
                         }else {
                             return false;
