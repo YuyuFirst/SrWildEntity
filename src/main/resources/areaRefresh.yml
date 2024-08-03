@@ -1,0 +1,10 @@
+Area_Number: 1
+area_1:
+  x1: 100
+  z1: 100
+  x2: 200
+  z2: 200
+  yMax: 10
+  yMin: 20  #此处给出一个大概y轴刷新范围，增大刷新的概率
+  worldName: TravelersDreamCompact
+  refreshList: [ZOMBIE]

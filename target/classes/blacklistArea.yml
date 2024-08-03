@@ -1,0 +1,13 @@
+blacklistNums: 2 #黑名单区域的数量
+blacklist_1:  #黑名单区域
+  world_name: TravelersDreamCompact
+  x1: 100
+  z1: 100
+  x2: 200
+  z2: 200
+blacklist_2:  #黑名单区域
+  world_name: TravelersDreamCompact
+  x1: 1000
+  z1: 100
+  x2: 2000
+  z2: 200

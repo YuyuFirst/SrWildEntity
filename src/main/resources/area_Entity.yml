@@ -1,0 +1,12 @@
+area_1:
+  ZOMBIE: #指出entity在该群系的刷新条件
+    type: 0 #0表示生成mc原生实体，1表示生成MM怪物,不能为空！
+    site: 1 #刷新位置,数字代表不同的刷新位置
+    light: 15 #刷新亮度
+    refreshTime: 20 #单位为秒
+    nums: 2 #entity的刷新数量，注意，这里的数量会和通群系中其他entity相关，总数不会超过config.yml中的定义
+    yMax: 150 #极限刷新高度
+    yMin: 60 #最小刷新高度
+    riskMax: 10  #刷新危险度的范围
+    riskMin: 0 #条件是小于等于riskMin大于riskMax，即riskMin<= risklevel < riskMax 才会刷新
+    weight: 1.0 #权重越高，刷新的概率越高，最高为1.0
